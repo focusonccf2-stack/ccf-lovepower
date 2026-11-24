@@ -12,6 +12,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: fetch-votes
@@ -37,13 +38,10 @@ jobs:
           git commit -m "更新票數 $(TZ=Asia/Taipei date '+%m/%d %H:%M')"
           git push
 
-  deploy:
+  build:
     needs: fetch
     if: always() && (needs.fetch.result == 'success' || needs.fetch.result == 'skipped')
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,5 +50,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: docs
+
+  deploy:
+    needs: build
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
