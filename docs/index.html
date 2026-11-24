@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>愛的力量投票監測表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Warm, simple, mobile-first: header → our status hero → followed units (cards) → 60萬組 ranking list with 12-place line → daily table. Tap a name → side sheet. */
+:root{
+  --bg:#fff7f1; --surface:#ffffff; --soft:#ffeee6; --ink:#3d2f2c; --muted:#8c756f; --line:#f1dfd6;
+  --accent:#e2645a; --accent-ink:#ffffff; --in:#3f9a6b; --in-soft:#e5f5ec; --down:#c8483e; --gold:#f2a93b;
+  --shadow:0 6px 20px rgba(150,80,60,.08);
+  --font-display:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1d1715; --surface:#29201d; --soft:#3a2a25; --ink:#f6ebe6; --muted:#c3aba3; --line:#47352f;
+    --accent:#ff8a7e; --accent-ink:#2a1512; --in:#6fd09c; --in-soft:#1f3a2c; --down:#ff8f84; --gold:#ffc46b;
+    --shadow:0 6px 20px rgba(0,0,0,.25); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1d1715; --surface:#29201d; --soft:#3a2a25; --ink:#f6ebe6; --muted:#c3aba3; --line:#47352f;
+  --accent:#ff8a7e; --accent-ink:#2a1512; --in:#6fd09c; --in-soft:#1f3a2c; --down:#ff8f84; --gold:#ffc46b;
+  --shadow:0 6px 20px rgba(0,0,0,.25); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 56px;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+.wrap>*{min-width:0}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;font-weight:700}
+h1{font-size:clamp(22px,4.6vw,30px)}
+h2{font-size:20px}
+a{color:var(--accent)}
+.muted{color:var(--muted)} .small{font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{flex:none}
+.live{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:var(--shadow)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--in);box-shadow:0 0 0 0 rgba(63,154,107,.5);animation:pulse 2s infinite}
+.dot.off{background:var(--muted);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,154,107,.45)}70%{box-shadow:0 0 0 8px rgba(63,154,107,0)}100%{box-shadow:0 0 0 0 rgba(63,154,107,0)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+.sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 14px;margin-bottom:14px}
+/* hero */
+.hero{background:linear-gradient(135deg,var(--soft),var(--surface) 70%);display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:center}
+@media (max-width:720px){.hero{grid-template-columns:1fr}}
+.hero .rank-big{font-family:var(--font-display);font-size:clamp(40px,9vw,60px);line-height:1.1;color:var(--accent)}
+.hero .votes{font-size:22px;font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500}
+.pill.in{background:var(--in-soft);color:var(--in)}
+.pill.out{background:var(--soft);color:var(--down)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.stat .v{font-size:19px;font-weight:700}
+.bar{height:10px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--accent));border-radius:999px}
+/* follow cards */
+.follow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.fcard{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--surface);display:grid;gap:6px}
+.fcard.us{border-color:var(--accent);background:var(--soft)}
+.fcard .v{font-size:22px;font-weight:700}
+.fcard .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* ranking list */
+.list{display:grid}
+.item{display:grid;grid-template-columns:44px 1fr 96px 100px 84px 64px 92px;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line)}
+.item>span{min-width:0}
+.item.head{font-size:12px;color:var(--muted);padding-top:0}
+.item.us{background:var(--soft);border-radius:12px}
+.item .r{text-align:right}
+.cut{display:flex;align-items:center;gap:10px;color:var(--in);font-size:13px;margin:4px 0}
+.cut::before,.cut::after{content:"";flex:1;border-top:2px dashed var(--in)}
+.badge{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--bg);font-weight:700;font-size:14px}
+.badge.in{background:var(--in);color:#fff}
+.namebtn{all:unset;cursor:pointer;display:block;border-radius:6px;min-width:0}
+.namebtn .o{font-weight:700;display:block}
+.namebtn .t{display:block;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.namebtn:hover .o{color:var(--accent)}
+.namebtn{max-width:100%;overflow:hidden}
+.fcard>*,.res>div,.item .c-n{min-width:0;overflow:hidden}
+.namebtn .o{overflow-wrap:anywhere}
+.namebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tag-us{display:inline-block;font-size:11px;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 8px;margin-left:6px;vertical-align:2px;font-weight:500}
+.up{color:var(--in)} .down{color:var(--down)} .zero{color:var(--muted)}
+.follow{font:inherit;font-size:13px;border-radius:999px;padding:5px 10px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap}
+.follow[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.follow:disabled{opacity:.6;cursor:default}
+.follow:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:720px){
+  .item{grid-template-columns:40px 1fr auto;grid-template-areas:"b n f" "b v v";row-gap:2px}
+  .item.head{display:none}
+  .item .c-b{grid-area:b} .item .c-n{grid-area:n} .item .c-f{grid-area:f}
+  .item .c-v{grid-area:v;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;justify-content:flex-start;font-size:13.5px}
+  .item .c-s{flex-basis:100%}
+  .item .c-s .spark{width:100%;max-width:240px;height:24px}
+  .item .c-v span{white-space:nowrap}
+  .item .r{text-align:left}
+  .item .c-g,.item .c-m{display:none}
+  .item .c-v .lbl{color:var(--muted);margin-right:4px}
+}
+@media (min-width:721px){ .item .c-v{display:contents} .item .c-v .lbl{display:none} }
+/* table */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:500}
+td.n,th.n{text-align:left;white-space:normal;min-width:160px}
+tr.us td{background:var(--soft)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+details>summary{cursor:pointer;font-family:var(--font-display);font-size:18px;list-style:none}
+details>summary::before{content:"＋ ";color:var(--accent)}
+details[open]>summary::before{content:"－ "}
+input[type=search]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.results{display:grid;gap:6px;margin-top:10px;max-height:360px;overflow:auto}
+.res{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
+.empty{color:var(--muted);text-align:center;padding:20px}
+.note{background:var(--soft);border-radius:14px;padding:10px 14px;font-size:13px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+/* side sheet */
+.scrim{position:fixed;inset:0;background:rgba(40,20,15,.35);display:none;z-index:10}
+.scrim.open{display:block}
+.sheet{position:fixed;top:0;right:0;height:100%;width:min(520px,100%);background:var(--surface);z-index:11;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;border-radius:20px 0 0 20px}
+.sheet:not(.open){visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+.sheet.open{transform:none}
+.fcard{min-width:0}
+.top>*{min-width:0}
+@media (max-width:600px){.sheet{top:auto;bottom:0;height:88%;width:100%;border-radius:20px 20px 0 0;transform:translateY(100%)}}
+.sheet header{padding:18px 20px 12px;border-bottom:1px solid var(--line);display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.sheet .body{padding:16px 20px 30px;overflow:auto;display:grid;gap:16px}
+.x{all:unset;cursor:pointer;font-size:24px;line-height:1;padding:4px 10px;border-radius:8px}
+.x:focus-visible{outline:2px solid var(--accent)}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini div{background:var(--bg);border-radius:12px;padding:8px 10px}
+.mini .v{font-size:18px;font-weight:700}
+.chartbox{position:relative;height:200px}
+footer{color:var(--muted);font-size:12.5px;text-align:center}
+.spark{display:block;width:90px;height:28px}
+.spark-na{font-size:12px;color:var(--muted)}
+.fcard .spark{width:100%;height:36px}
+/* compare */
+.cmp-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cmp-box{position:relative;height:340px}
+@media (max-width:600px){.cmp-box{height:280px}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 10px;font-size:13px;background:var(--surface)}
+.chip i{width:10px;height:10px;border-radius:50%;flex:none}
+.chip button{all:unset;cursor:pointer;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.chip button:hover{background:var(--soft)}
+.chip button:focus-visible{outline:2px solid var(--accent)}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;max-height:260px;overflow:auto;margin-top:8px}
+.pick label{display:flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:12px;font-size:13.5px;cursor:pointer}
+.pick label.on{border-color:var(--accent);background:var(--soft)}
+.pick input{accent-color:var(--accent)}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.btn{font:inherit;font-size:13px;border-radius:999px;padding:5px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.cmp-table td.n i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="20" fill="var(--soft)"/><path d="M20 29s-8.5-5.2-8.5-11a4.7 4.7 0 0 1 8.5-2.8A4.7 4.7 0 0 1 28.5 18c0 5.8-8.5 11-8.5 11z" fill="var(--accent)"/></svg>
+    <div>
+      <h1>愛的力量・投票追蹤</h1>
+      <div class="muted small">第 17 屆「您的一票，決定愛的力量」· 社會福利 60 萬元組前 12 名入選</div>
+    </div>
+  </div>
+  <div class="live" id="live"><span class="dot off" id="live-dot"></span><span id="live-txt">連線中…</span></div>
+</div>
+
+<section class="card hero" aria-label="本會狀況">
+  <div>
+    <div class="muted">癌症關懷基金會目前在 60 萬元組</div>
+    <div class="rank-big" id="h-rank">—</div>
+    <div class="row" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px">
+      <span class="votes num" id="h-votes">— 票</span>
+      <span id="h-pill"></span>
+      <span class="small" id="h-gain"></span>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="muted small">第 12 名票數</div><div class="v num" id="h-cut">—</div></div>
+    <div class="stat"><div class="muted small">距投票截止</div><div class="v" id="h-left">—</div></div>
+    <div class="stat" style="grid-column:1/-1">
+      <div class="muted small" id="h-bonus-l">加碼門檻</div>
+      <div class="bar"><i id="h-bar" style="width:0"></i></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="sec-head">
+    <h2>我追蹤的單位</h2>
+    <span class="muted small">在下方排行按「☆ 追蹤」就會加到這裡</span>
+  </div>
+  <div class="follow-grid" id="follows"><div class="empty">載入中…</div></div>
+</section>
+
+<section class="card">
+  <div class="sec-head">
+    <h2>60 萬元組排行</h2>
+    <span class="muted small" id="rank-sub">點單位名稱看每天的增減</span>
+  </div>
+  <div class="list" id="rank">
+    <div class="empty">載入中…</div>
+  </div>
+</section>
+
+<section class="card" id="compare">
+  <div class="sec-head">
+    <h2>自訂比較趨勢</h2>
+    <span class="muted small">自己挑單位，用不同顏色比較票數走勢</span>
+  </div>
+  <div class="cmp-tools">
+    <div class="seg" role="group" aria-label="比較方式">
+      <button type="button" data-cmode="total" aria-pressed="true">累計票數</button>
+      <button type="button" data-cmode="diff" aria-pressed="false">和本會差幾票</button>
+      <button type="button" data-cmode="gain" aria-pressed="false">每日增減</button>
+    </div>
+    <div class="seg" role="group" aria-label="期間">
+      <button type="button" data-crange="7" aria-pressed="true">近 7 天</button>
+      <button type="button" data-crange="all" aria-pressed="false">全部</button>
+    </div>
+  </div>
+  <div class="chips" id="cmp-chips"></div>
+  <div class="cmp-box"><canvas id="cmp-chart" aria-label="自訂單位票數趨勢比較圖"></canvas></div>
+  <p class="muted small" id="cmp-note"></p>
+  <div class="scroll"><table class="cmp-table" id="cmp-table"></table></div>
+  <details style="margin-top:14px">
+    <summary>選擇要比較的單位</summary>
+    <div class="quick" style="margin-top:10px">
+      <button type="button" class="btn" data-quick="near">本會和前後名次</button>
+      <button type="button" class="btn" data-quick="cut">入選線附近（第 10–14 名）</button>
+      <button type="button" class="btn" data-quick="top">前 5 名＋本會</button>
+      <button type="button" class="btn" data-quick="follow">我追蹤的單位</button>
+      <button type="button" class="btn" data-quick="clear">清空</button>
+    </div>
+    <input type="search" id="cmp-q" placeholder="搜尋單位或提案名稱" aria-label="搜尋要比較的單位" style="margin-top:10px">
+    <div class="pick" id="cmp-pick"></div>
+  </details>
+</section>
+
+<div hidden><input type="search" id="q"><div id="results"></div></div>
+
+<section class="card">
+  <div class="sec-head">
+    <h2>追蹤單位的每日變化</h2>
+    <div class="seg" role="group" aria-label="顯示方式">
+      <button type="button" id="m-gain" aria-pressed="true">每日增減</button>
+      <button type="button" id="m-total" aria-pressed="false">累計票數</button>
+    </div>
+  </div>
+  <div class="scroll"><table id="daily"><tbody><tr><td class="empty">尚無資料</td></tr></tbody></table></div>
+</section>
+
+<p class="note">票數每 3 小時自動從台新各提案頁抓取一次，最近一次：<b id="snap-at"></b>。網頁開著時每 10 分鐘自動重新整理資料。「☆ 追蹤」和比較組合只存在你自己的瀏覽器。提案頁的數字有時比官方「<a href="https://www.taishincharity.org.tw/lovepower/vote_rank.html" target="_blank" rel="noopener">票數排行</a>」頁慢，有疑問時請以官方為準。</p>
+<footer>癌症關懷基金會 · 投票追蹤小幫手</footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-hidden="true" aria-labelledby="s-org">
+  <header>
+    <div>
+      <h3 id="s-org" style="font-size:19px"></h3>
+      <div class="muted small" id="s-title"></div>
+      <div class="muted small" id="s-meta"></div>
+    </div>
+    <button type="button" class="x" id="s-close" aria-label="關閉">×</button>
+  </header>
+  <div class="body">
+    <div class="mini">
+      <div><div class="muted small">累積票數</div><div class="v num" id="s-v">—</div></div>
+      <div><div class="muted small">前一日增減</div><div class="v num" id="s-g">—</div></div>
+      <div><div class="muted small">組內排名</div><div class="v" id="s-r">—</div></div>
+    </div>
+    <div><button type="button" class="follow" id="s-follow" aria-pressed="false">☆ 追蹤</button></div>
+    <div><div class="muted small" style="margin-bottom:6px">近 7 天票數變化（線：累計票數；長條：當日增減）</div>
+    <div class="chartbox" style="height:240px"><canvas id="s-chart" aria-label="近七天票數趨勢圖"></canvas></div></div>
+    <button type="button" class="btn" id="s-compare" style="justify-self:start">＋ 加入比較圖</button>
+    <div class="scroll"><table id="s-table"><thead><tr><th class="n" style="min-width:0">日期</th><th>累積票數</th><th>當日增減</th><th>60 萬組名次</th></tr></thead><tbody></tbody></table></div>
+    <a id="s-link" href="#" target="_blank" rel="noopener">開啟這個提案的台新頁面</a>
+  </div>
+</aside>
+
+<script>
+(function(){
+"use strict";
+const G60="社會福利-60萬元組", CUT=12, MAX_FOLLOW=20;
+const DEADLINE=Date.parse("2026-11-30T17:00:00+08:00");
+const BONUS=[10000,20000,30000,40000];
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat("zh-TW");
+const fmt=n=>(n==null||isNaN(n))?"—":nf.format(n);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fTime=new Intl.DateTimeFormat("zh-TW",{timeZone:"Asia/Taipei",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
+const md=d=>{const p=d.split("-");return (+p[1])+"/"+(+p[2]);};
+const signed=n=>n==null||isNaN(n)?'<span class="zero">—</span>':n>0?'<span class="up">+'+nf.format(n)+'</span>':n<0?'<span class="down">'+nf.format(n)+'</span>':'<span class="zero">0</span>';
+const move=(p,c)=>p==null||c==null?'<span class="zero">—</span>':p>c?'<span class="up">▲'+(p-c)+'</span>':p<c?'<span class="down">▼'+(c-p)+'</span>':'<span class="zero">－</span>';
+
+let db=null, catalog={}, watch=[], days=[], mode="gain", chart=null, openId=null, saving=false;
+
+const info=id=>catalog[id]||{t:"",o:"提案 "+id,g:""};
+function usId(){ for(const [id,x] of Object.entries(catalog)) if(x.g===G60&&/癌症關懷基金會/.test(x.o||"")) return id; return null; }
+const ids60=()=>Object.keys(catalog).filter(id=>catalog[id].g===G60);
+function follows(){ const u=usId(); const s=watch.slice(); if(u&&!s.includes(u)) s.unshift(u); return s; }
+const isFollowed=id=>follows().includes(id);
+
+function val(i,id){ const d=days[i]; const v=d&&d.votes?d.votes[id]:undefined; return typeof v==="number"?v:null; }
+function prevI(i,id){ for(let k=i-1;k>=0;k--) if(val(k,id)!=null) return k; return -1; }
+function gainAt(i,id){ const v=val(i,id), p=prevI(i,id); return v!=null&&p>=0?v-val(p,id):null; }
+function rank60(i){ const l=ids60().map(id=>[id,val(i,id)]).filter(x=>x[1]!=null).sort((a,b)=>b[1]-a[1]); const m={}; l.forEach(([id],k)=>m[id]=k+1); return {m,l}; }
+function groupRank(i,id){
+  const g=info(id).g; if(!g||i<0) return null;
+  const peers=Object.keys(catalog).filter(x=>catalog[x].g===g).map(x=>[x,val(i,x)]).filter(x=>x[1]!=null);
+  if(g!==G60) return null;
+  peers.sort((a,b)=>b[1]-a[1]); const k=peers.findIndex(p=>p[0]===id); return k<0?null:k+1;
+}
+
+function followBtn(id){
+  const on=isFollowed(id), us=id===usId();
+  return '<button type="button" class="follow" data-follow="'+esc(id)+'" aria-pressed="'+on+'"'+(us?' disabled title="本會固定追蹤"':'')+'>'+(on?'★ 已追蹤':'☆ 追蹤')+'</button>';
+}
+function nameBtn(id){
+  const x=info(id);
+  return '<button type="button" class="namebtn" data-open="'+esc(id)+'"><span class="o">'+esc(x.o)+(id===usId()?'<span class="tag-us">本會</span>':'')+'</span>'+(x.t?'<span class="t">'+esc(x.t)+'</span>':'')+'</button>';
+}
+
+/* ---------- render ---------- */
+function render(){ renderLive(); renderHero(); renderFollows(); renderRank(); renderCompare(); renderResults(); renderDaily(); if(openId) openSheet(openId,true); }
+
+function renderLive(){
+  const last=days[days.length-1];
+  $("live-dot").classList.toggle("off",!days.length);
+  $("live-txt").textContent = last&&last.ts ? "自動追蹤中 · "+fTime.format(new Date(last.ts))+" 更新" : "資料載入中";
+}
+function renderHero(){
+  const L=days.length-1, us=usId();
+  const left=DEADLINE-Date.now();
+  $("h-left").textContent = left>0 ? Math.floor(left/864e5)+" 天 "+Math.floor(left%864e5/36e5)+" 時" : "已截止";
+  if(L<0||!us){ return; }
+  const {m,l}=rank60(L), r=m[us], v=val(L,us);
+  $("h-rank").textContent = r?("第 "+r+" 名"):"—";
+  $("h-votes").textContent = fmt(v)+" 票";
+  $("h-pill").innerHTML = r ? (r<=CUT?'<span class="pill in">♥ 在入選圈內</span>':'<span class="pill out">還在圈外，加油！</span>') : "";
+  const g=gainAt(L,us); $("h-gain").innerHTML = g==null?"":"比前一天 "+signed(g);
+  $("h-cut").textContent = l.length>=CUT ? fmt(l[CUT-1][1]) : "—";
+  const nb=BONUS.find(b=>v<=b);
+  if(nb){ const lo=BONUS[BONUS.indexOf(nb)-1]||0; $("h-bonus-l").textContent="離動能加碼門檻 "+nf.format(nb)+" 票還差 "+fmt(nb-v+1)+" 票"; $("h-bar").style.width=Math.max(3,Math.min(100,(v-lo)/(nb-lo)*100))+"%"; }
+  else { $("h-bonus-l").textContent="已超過最高加碼門檻"; $("h-bar").style.width="100%"; }
+}
+function renderFollows(){
+  const el=$("follows"), L=days.length-1, f=follows();
+  if(!Object.keys(catalog).length){ el.innerHTML='<div class="empty">資料載入中…</div>'; return; }
+  el.innerHTML = f.map(id=>{
+    const v=L>=0?val(L,id):null, g=L>=0?gainAt(L,id):null, r=L>=0?groupRank(L,id):null, x=info(id);
+    return '<div class="fcard'+(id===usId()?' us':'')+'">'+nameBtn(id)+
+      '<div class="muted small">'+esc(x.g.replace("社會福利-",""))+(r?' · 第 '+r+' 名':'')+'</div>'+
+      spark(id,id===usId()?css("--accent"):css("--in"),true)+
+      '<div class="row"><span class="v num">'+(v==null?'<span class="muted small" style="font-weight:400">下次記錄後出現</span>':fmt(v))+'</span><span class="num">'+signed(g)+'</span></div>'+
+      '<div class="row"><span></span>'+followBtn(id)+'</div></div>';
+  }).join("") || '<div class="empty">還沒有追蹤的單位</div>';
+}
+function renderRank(){
+  const el=$("rank"), L=days.length-1;
+  if(L<0||!ids60().length){ el.innerHTML='<div class="empty">還沒有票數紀錄。</div>'; return; }
+  const {m,l}=rank60(L), pm=L>0?rank60(L-1).m:{}, us=usId();
+  $("rank-sub").textContent = md(days[L].date)+" 的紀錄 · 點單位名稱看每天的增減";
+  let h='<div class="item head"><span>名次</span><span>單位</span><span>近 7 天</span><span class="r">累積票數</span><span class="r">比前一天</span><span class="r">名次變化</span><span></span></div>';
+  l.forEach(([id,v],k)=>{
+    const r=k+1;
+    h+='<div class="item'+(id===us?' us':'')+'"><span class="c-b"><span class="badge'+(r<=CUT?' in':'')+'">'+r+'</span></span>'+
+      '<span class="c-n">'+nameBtn(id)+'</span>'+
+      '<span class="c-v"><span class="c-s">'+spark(id,id===us?css("--accent"):css("--in"))+'</span><span class="r num"><span class="lbl">票數</span><b>'+fmt(v)+'</b></span><span class="r num"><span class="lbl">比前一天</span>'+signed(gainAt(L,id))+'</span><span class="r num"><span class="lbl">名次</span>'+move(pm[id],r)+'</span></span>'+
+      '<span class="c-f r">'+followBtn(id)+'</span></div>';
+    if(r===CUT) h+='<div class="cut">以上前 12 名可獲 60 萬元</div>';
+  });
+  el.innerHTML=h;
+}
+function renderResults(){
+  const q=$("q").value.trim(), el=$("results");
+  if(!q){ el.innerHTML='<div class="muted small">輸入關鍵字開始搜尋</div>'; return; }
+  const items=Object.entries(catalog).filter(([id,x])=>(x.o+x.t+id).includes(q)).slice(0,40);
+  el.innerHTML = items.length ? items.map(([id,x])=>'<div class="res"><div style="min-width:0">'+nameBtn(id)+'<span class="muted small">'+esc(x.g)+'</span></div>'+followBtn(id)+'</div>').join("") : '<div class="empty">找不到符合的提案</div>';
+}
+function renderDaily(){
+  const t=$("daily"), f=follows();
+  if(!days.length||!f.length){ t.innerHTML='<tbody><tr><td class="empty">尚無資料</td></tr></tbody>'; return; }
+  let h='<thead><tr><th class="n">單位</th>'+days.map(d=>'<th>'+md(d.date)+'</th>').join("")+'</tr></thead><tbody>';
+  h+=f.map(id=>'<tr class="'+(id===usId()?'us':'')+'"><td class="n">'+nameBtn(id)+'</td>'+days.map((d,i)=>'<td>'+(mode==="gain"?signed(gainAt(i,id)):fmt(val(i,id)))+'</td>').join("")+'</tr>').join("");
+  t.innerHTML=h+'</tbody>';
+}
+
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* ---------- 7-day sparkline ---------- */
+function last7(id){ const out=[]; for(let i=Math.max(0,days.length-7);i<days.length;i++){ const v=val(i,id); if(v!=null) out.push({d:days[i].date,v}); } return out; }
+function spark(id,color,wide){
+  const s=last7(id);
+  if(s.length<2) return '<span class="spark-na">'+(s.length?'累積中':'—')+'</span>';
+  const W=wide?220:90,H=wide?36:28,p=3;
+  const vs=s.map(x=>x.v), mn=Math.min(...vs), mx=Math.max(...vs), span=mx-mn||1;
+  const pts=s.map((x,i)=>[p+i*(W-2*p)/(s.length-1), H-p-(x.v-mn)/span*(H-2*p)]);
+  const line=pts.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+  const area="M"+pts[0][0]+","+(H-p)+" L"+line.replace(/ /g," L")+" L"+pts[pts.length-1][0]+","+(H-p)+" Z";
+  const lp=pts[pts.length-1], g=s[s.length-1].v-s[0].v;
+  return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="近 7 天增加 '+nf.format(g)+' 票"><path d="'+area+'" fill="'+color+'" opacity=".12"/><polyline points="'+line+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="2.6" fill="'+color+'"/></svg>';
+}
+
+/* ---------- compare ---------- */
+const PALETTE=["#4a7bd0","#3f9a6b","#f2a93b","#8e5cc7","#1f9fb0","#c2577f","#7a8c3a","#9c6b3f","#5b6b7a","#d9822b"];
+let cmpSel=null, cmode="total", crange="7", cmpChart=null;
+try{ const s=JSON.parse(localStorage.getItem("ccf-cmp")||"null"); if(Array.isArray(s)) cmpSel=s.map(String); }catch(_){}
+function saveCmp(){ try{ localStorage.setItem("ccf-cmp",JSON.stringify(cmpSel)); }catch(_){} }
+function colorOf(id){ if(id===usId()) return css("--accent"); const others=cmpSel.filter(x=>x!==usId()); return PALETTE[Math.max(0,others.indexOf(id))%PALETTE.length]; }
+function quick(kind){
+  const L=days.length-1, us=usId(); if(L<0) return [];
+  const l=rank60(L).l.map(x=>x[0]), i=l.indexOf(us);
+  if(kind==="near") return [...new Set([l[i-1],us,l[i+1],l[CUT-1]].filter(Boolean))];
+  if(kind==="cut") return [...new Set([...l.slice(CUT-3,CUT+2),us].filter(Boolean))];
+  if(kind==="top") return [...new Set([...l.slice(0,5),us].filter(Boolean))];
+  if(kind==="follow") return follows();
+  return [];
+}
+function renderCompare(){
+  if(!Object.keys(catalog).length||!days.length) return;
+  if(!cmpSel){ cmpSel=quick("near"); }
+  cmpSel=cmpSel.filter(id=>catalog[id]);
+  const us=usId();
+  $("cmp-chips").innerHTML = cmpSel.length ? cmpSel.map(id=>'<span class="chip"><i style="background:'+colorOf(id)+'"></i>'+esc(info(id).o)+'<button type="button" data-cmp-rm="'+esc(id)+'" aria-label="移除 '+esc(info(id).o)+'">×</button></span>').join("") : '<span class="muted small">還沒選單位，請從下方「選擇要比較的單位」挑選。</span>';
+  const from = crange==="7" ? Math.max(0,days.length-7) : 0;
+  const idx=[]; for(let i=from;i<days.length;i++) idx.push(i);
+  const labels=idx.map(i=>md(days[i].date));
+  const ds=cmpSel.map(id=>{
+    const data=idx.map(i=>{ const v=val(i,id); if(cmode==="total") return v; if(cmode==="gain") return gainAt(i,id); const u=val(i,us); return v!=null&&u!=null?v-u:null; });
+    const c=colorOf(id);
+    return {label:info(id).o,data,borderColor:c,backgroundColor:c,borderWidth:id===us?3.5:2,pointRadius:4,pointHoverRadius:6,tension:.25,spanGaps:true};
+  });
+  $("cmp-note").textContent = days.length<7 ? "目前只有 "+days.length+" 天的紀錄，之後每天會多一個點。" : "";
+  if(window.Chart){
+    const muted=css("--muted"), line=css("--line"), ink=css("--ink");
+    const type = cmode==="gain"?"bar":"line";
+    if(cmpChart&&cmpChart.config.type!==type){ cmpChart.destroy(); cmpChart=null; }
+    const opts={responsive:true,maintainAspectRatio:false,animation:{duration:250},interaction:{mode:"index",intersect:false},
+      plugins:{legend:{position:"bottom",labels:{color:ink,usePointStyle:true,boxWidth:8,font:{family:"Noto Sans TC"}}},
+        tooltip:{itemSort:(a,b)=>(b.parsed.y??0)-(a.parsed.y??0),callbacks:{label:c=>" "+c.dataset.label+"："+(cmode==="total"?"":(c.parsed.y>0?"+":""))+nf.format(c.parsed.y)+" 票"}}},
+      scales:{x:{ticks:{color:muted},grid:{display:false}},y:{ticks:{color:muted,callback:v=>nf.format(v)},grid:{color:line}}}};
+    if(cmpChart){ cmpChart.data={labels,datasets:ds}; cmpChart.options=opts; cmpChart.update(); }
+    else cmpChart=new Chart($("cmp-chart"),{type,data:{labels,datasets:ds},options:opts});
+  }
+  // latest-value table
+  const L=days.length-1, uv=val(L,us);
+  const rows=cmpSel.map(id=>({id,v:val(L,id),g:gainAt(L,id),r:info(id).g===G60?rank60(L).m[id]:null})).sort((a,b)=>(b.v??-1)-(a.v??-1));
+  $("cmp-table").innerHTML = rows.length ? '<thead><tr><th class="n">單位</th><th>60 萬組名次</th><th>累積票數</th><th>比前一天</th><th>和本會相比</th></tr></thead><tbody>'+
+    rows.map(x=>'<tr class="'+(x.id===us?'us':'')+'"><td class="n"><i style="background:'+colorOf(x.id)+'"></i>'+esc(info(x.id).o)+'</td><td>'+(x.r||'—')+'</td><td>'+fmt(x.v)+'</td><td>'+signed(x.g)+'</td><td>'+(x.id===us?'<span class="zero">本會</span>':(x.v!=null&&uv!=null?signed(x.v-uv):'—'))+'</td></tr>').join("")+'</tbody>' : "";
+  renderPick();
+}
+function renderPick(){
+  const q=$("cmp-q").value.trim();
+  const L=days.length-1, order=L>=0?rank60(L).l.map(x=>x[0]):[];
+  let ids = q ? Object.keys(catalog).filter(id=>(catalog[id].o+catalog[id].t+id).includes(q)) : [...new Set([...order,...follows()])];
+  ids=ids.slice(0,80);
+  $("cmp-pick").innerHTML = ids.map(id=>{ const on=cmpSel.includes(id), r=L>=0&&info(id).g===G60?rank60(L).m[id]:null;
+    return '<label class="'+(on?'on':'')+'"><input type="checkbox" data-cmp="'+esc(id)+'" '+(on?'checked':'')+'>'+(r?'<b>'+r+'.</b> ':'')+esc(info(id).o)+'</label>'; }).join("") || '<div class="empty">找不到符合的單位</div>';
+}
+function setCmp(list){ cmpSel=[...new Set(list)].slice(0,10); saveCmp(); renderCompare(); }
+$("cmp-pick").addEventListener("change",e=>{ const id=e.target.dataset.cmp; if(!id) return;
+  if(e.target.checked){ if(cmpSel.length>=10){ e.target.checked=false; toast("最多同時比較 10 個單位"); return; } setCmp(cmpSel.concat(id)); }
+  else setCmp(cmpSel.filter(x=>x!==id)); });
+$("cmp-q").addEventListener("input",renderPick);
+document.querySelectorAll("[data-quick]").forEach(b=>b.addEventListener("click",()=>setCmp(quick(b.dataset.quick))));
+document.querySelectorAll("[data-cmode]").forEach(b=>b.addEventListener("click",()=>{ cmode=b.dataset.cmode; document.querySelectorAll("[data-cmode]").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderCompare(); }));
+document.querySelectorAll("[data-crange]").forEach(b=>b.addEventListener("click",()=>{ crange=b.dataset.crange; document.querySelectorAll("[data-crange]").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderCompare(); }));
+$("cmp-chips").addEventListener("click",e=>{ const b=e.target.closest("[data-cmp-rm]"); if(b) setCmp(cmpSel.filter(x=>x!==b.dataset.cmpRm)); });
+$("s-compare").addEventListener("click",()=>{ if(!openId) return; if(!cmpSel) cmpSel=[]; if(!cmpSel.includes(openId)){ if(cmpSel.length>=10){ toast("最多同時比較 10 個單位"); return; } setCmp(cmpSel.concat(openId)); } closeSheet(); $("compare").scrollIntoView({behavior:"smooth",block:"start"}); toast("已加入比較圖"); });
+
+/* ---------- sheet ---------- */
+function openSheet(id,refresh){
+  openId=id; const x=info(id), in60=x.g===G60;
+  $("s-org").textContent=x.o; $("s-title").textContent=x.t||""; $("s-meta").textContent="提案編號 "+id+(x.g?" · "+x.g:"");
+  $("s-link").href="https://www.taishincharity.org.tw/lovepower/detail-report_"+encodeURIComponent(id)+".html";
+  const fb=$("s-follow"), on=isFollowed(id);
+  fb.dataset.follow=id; fb.setAttribute("aria-pressed",on); fb.textContent=on?"★ 已追蹤":"☆ 追蹤"; fb.disabled=id===usId();
+  const rows=[]; days.forEach((d,i)=>{ const v=val(i,id); if(v!=null) rows.push({d:d.date,v,g:gainAt(i,id),r:in60?rank60(i).m[id]:null}); });
+  const last=rows[rows.length-1];
+  $("s-v").textContent=last?fmt(last.v):"—"; $("s-g").innerHTML=last?signed(last.g):"—";
+  const gr=groupRank(days.length-1,id); $("s-r").textContent=gr?("第 "+gr+" 名"):"—";
+  $("s-table").tBodies[0].innerHTML = rows.length ? rows.slice().reverse().map(r=>'<tr><td class="n" style="min-width:0">'+md(r.d)+'</td><td>'+fmt(r.v)+'</td><td>'+signed(r.g)+'</td><td>'+(r.r?r.r+(r.r<=CUT?' ♥':''):'<span class="zero">—</span>')+'</td></tr>').join("") : '<tr><td colspan="4" class="empty">還沒有這個單位的紀錄，追蹤後下一次記錄就會出現。</td></tr>';
+  $("s-compare").textContent = cmpSel&&cmpSel.includes(id) ? "✓ 已在比較圖中" : "＋ 加入比較圖";
+  if(window.Chart){
+    const r7=rows.slice(-7), c=id===usId()?css("--accent"):css("--in"), muted=css("--muted");
+    if(chart) chart.destroy();
+    chart=new Chart($("s-chart"),{data:{labels:r7.map(r=>md(r.d)),datasets:[
+        {type:"line",label:"累計票數",data:r7.map(r=>r.v),borderColor:c,backgroundColor:c,borderWidth:2.5,pointRadius:4,tension:.25,yAxisID:"y"},
+        {type:"bar",label:"當日增減",data:r7.map(r=>r.g),backgroundColor:css("--gold"),borderRadius:5,yAxisID:"y2",maxBarThickness:28}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},
+        plugins:{legend:{position:"bottom",labels:{color:css("--ink"),usePointStyle:true,boxWidth:8}},
+          title:{display:r7.length<2,text:"有兩天以上的紀錄後，這裡會畫出趨勢",color:muted},
+          tooltip:{callbacks:{label:t=>" "+t.dataset.label+"："+(t.datasetIndex===1&&t.parsed.y>0?"+":"")+nf.format(t.parsed.y)+" 票"}}},
+        scales:{x:{ticks:{color:muted},grid:{display:false}},
+          y:{position:"left",ticks:{color:muted,callback:v=>nf.format(v)},grid:{color:css("--line")}},
+          y2:{position:"right",beginAtZero:true,ticks:{color:muted,callback:v=>nf.format(v)},grid:{display:false}}}}});
+  }
+  if(!refresh){ $("sheet").classList.add("open"); $("sheet").setAttribute("aria-hidden","false"); $("scrim").classList.add("open"); $("s-close").focus(); }
+}
+function closeSheet(){ openId=null; $("sheet").classList.remove("open"); $("sheet").setAttribute("aria-hidden","true"); $("scrim").classList.remove("open"); }
+$("s-close").addEventListener("click",closeSheet); $("scrim").addEventListener("click",closeSheet);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&openId) closeSheet(); });
+
+/* ---------- one-click follow ---------- */
+let toastT; function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),2200); }
+function toggleFollow(id){
+  if(id===usId()) return;
+  const next = watch.includes(id) ? watch.filter(x=>x!==id) : watch.concat(id);
+  if(next.length>MAX_FOLLOW){ toast("最多追蹤 "+MAX_FOLLOW+" 個單位"); return; }
+  watch=next; try{ localStorage.setItem("ccf-follow",JSON.stringify(watch)); }catch(_){}
+  render(); toast(next.includes(id)?"已追蹤 "+info(id).o:"已取消追蹤");
+}
+document.addEventListener("click",e=>{
+  const f=e.target.closest&&e.target.closest("[data-follow]"); if(f&&!f.disabled){ toggleFollow(f.dataset.follow); return; }
+  const o=e.target.closest&&e.target.closest("[data-open]"); if(o) openSheet(o.dataset.open);
+});
+$("q").addEventListener("input",renderResults);
+function setMode(m){ mode=m; $("m-gain").setAttribute("aria-pressed",m==="gain"); $("m-total").setAttribute("aria-pressed",m==="total"); renderDaily(); }
+$("m-gain").addEventListener("click",()=>setMode("gain")); $("m-total").addEventListener("click",()=>setMode("total"));
+
+/* ---------- boot: auto-track on load ---------- */
+render(); setInterval(()=>{renderHero();renderLive();},60000);
+try{ const w=JSON.parse(localStorage.getItem("ccf-follow")||"[]"); if(Array.isArray(w)) watch=w.map(String); }catch(_){}
+let lastLoad=0;
+async function load(){
+  try{
+    const r=await fetch("data.json?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const D=await r.json();
+    catalog=D.catalog||{}; days=(D.days||[]).filter(x=>x&&x.date&&x.votes).sort((a,b)=>a.date.localeCompare(b.date));
+    watch=watch.filter(id=>catalog[id]); lastLoad=Date.now();
+    const sa=$("snap-at"); if(sa&&D.updatedAt) sa.textContent=fTime.format(new Date(D.updatedAt));
+    render();
+  }catch(e){ $("live-dot").classList.add("off"); $("live-txt").textContent="資料讀取失敗，稍後自動重試"; }
+}
+load();
+setInterval(load,10*60*1000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&Date.now()-lastLoad>5*60*1000) load(); });
+(function(){
+})();
+})();
+</script>
+</body>
+</html>
