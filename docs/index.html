@@ -167,6 +167,36 @@ footer{color:var(--muted);font-size:12.5px;text-align:center}
 .btn:hover{border-color:var(--accent)}
 .cmp-table td.n i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+/* 即時現況 */
+.top-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.now-btn{font:inherit;font-size:14px;font-weight:700;border:0;border-radius:999px;padding:8px 16px;background:var(--accent);color:var(--accent-ink);cursor:pointer;box-shadow:var(--shadow)}
+.now-btn:hover{filter:brightness(1.05)}
+.now-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.modal-scrim{position:fixed;inset:0;background:rgba(40,20,15,.4);display:none;z-index:30;align-items:center;justify-content:center;padding:16px}
+.modal-scrim.open{display:flex}
+.modal{background:var(--surface);border-radius:20px;max-width:440px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.25);display:grid;gap:14px;max-height:90vh;overflow:auto}
+.modal h3{font-size:21px}
+.eta{display:flex;align-items:baseline;gap:10px;background:var(--soft);border-radius:14px;padding:12px 14px}
+.eta b{font-size:26px;font-variant-numeric:tabular-nums;color:var(--accent)}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.steps li{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--muted)}
+.steps li i{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:12px;flex:none}
+.steps li.doing{color:var(--ink);font-weight:700}
+.steps li.doing i{border-color:var(--accent);border-top-color:transparent;animation:spin 1s linear infinite}
+.steps li.done{color:var(--ink)}
+.steps li.done i{background:var(--in);border-color:var(--in);color:#fff}
+.steps li.fail i{background:var(--down);border-color:var(--down);color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pbar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--accent));transition:width .8s linear}
+.modal .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.modal .primary{font:inherit;font-weight:700;border:0;border-radius:999px;padding:9px 18px;background:var(--accent);color:var(--accent-ink);cursor:pointer;text-decoration:none}
+.modal .ghost{font:inherit;border:1px solid var(--line);border-radius:999px;padding:8px 16px;background:transparent;color:var(--ink);cursor:pointer;text-decoration:none}
+.modal input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.modal ol{margin:0;padding-left:20px;font-size:13.5px;color:var(--muted);display:grid;gap:4px}
+.result{background:var(--in-soft);border-radius:14px;padding:12px 14px;font-size:15px}
+.msg{min-height:1.4em}.msg.err{color:var(--down)}.msg.ok{color:var(--in)}
+.primary:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
@@ -180,7 +210,10 @@ footer{color:var(--muted);font-size:12.5px;text-align:center}
       <div class="muted small">第 17 屆「您的一票，決定愛的力量」· 社會福利 60 萬元組前 12 名入選</div>
     </div>
   </div>
-  <div class="live" id="live"><span class="dot off" id="live-dot"></span><span id="live-txt">連線中…</span></div>
+  <div class="top-actions">
+    <div class="live" id="live"><span class="dot off" id="live-dot"></span><span id="live-txt">連線中…</span></div>
+    <button type="button" class="now-btn" id="now-btn">⚡ 即時現況</button>
+  </div>
 </div>
 
 <section class="card hero" aria-label="本會狀況">
@@ -273,6 +306,68 @@ footer{color:var(--muted);font-size:12.5px;text-align:center}
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-scrim" id="now-scrim" role="dialog" aria-modal="true" aria-labelledby="now-title">
+  <div class="modal">
+    <h3 id="now-title">⚡ 即時現況</h3>
+
+    <div id="now-start">
+      <p class="muted small" id="now-last" style="margin:0 0 10px"></p>
+      <div class="eta"><span>預計需要</span><b id="now-eta">約 2 分鐘</b></div>
+      <p class="muted small" id="now-eta-note" style="margin:8px 0 0"></p>
+      <div class="actions" style="margin-top:14px">
+        <button type="button" class="ghost" data-close>取消</button>
+        <button type="button" class="primary" id="now-go">立即抓取最新票數</button>
+      </div>
+      <p class="small" style="margin:12px 0 0"><a href="#" id="now-key-link">設定一鍵更新金鑰</a><span class="muted" id="now-key-state"></span></p>
+    </div>
+
+    <div id="now-manual" hidden>
+      <p style="margin:0">這台電腦還沒設定金鑰。請到 GitHub 按一下「Run workflow」，回到這裡就會自動顯示進度。</p>
+      <ol>
+        <li>按下方「開啟 GitHub」</li>
+        <li>按右邊綠色「Run workflow」，再按一次綠色「Run workflow」</li>
+        <li>回到這個頁面等待即可</li>
+      </ol>
+      <div class="actions">
+        <button type="button" class="ghost" data-close>取消</button>
+        <a class="primary" id="now-gh" href="#" target="_blank" rel="noopener">開啟 GitHub</a>
+      </div>
+    </div>
+
+    <div id="now-track" hidden>
+      <div class="eta"><span id="now-remain-l">約剩</span><b id="now-remain">—</b></div>
+      <div class="pbar"><i id="now-bar"></i></div>
+      <ol class="steps" id="now-steps">
+        <li data-s="queue"><i></i>送出請求、等待 GitHub 排程</li>
+        <li data-s="fetch"><i></i>到台新網站抓取 60 萬組票數</li>
+        <li data-s="deploy"><i></i>儲存紀錄、更新網站</li>
+        <li data-s="show"><i></i>載入最新數字</li>
+      </ol>
+      <div class="result" id="now-result" hidden></div>
+      <div class="actions"><a class="ghost" id="now-run" href="#" target="_blank" rel="noopener" hidden>查看執行紀錄</a><button type="button" class="primary" data-close>關閉</button></div>
+    </div>
+
+    <div id="now-key" hidden>
+      <p style="margin:0">設定後，在<b>這台電腦的這個瀏覽器</b>按「即時現況」就會直接開始抓取，不用再開 GitHub。金鑰只存在這個瀏覽器，請只在自己的電腦設定。</p>
+      <ol>
+        <li>到 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub 建立新金鑰（Fine-grained token）</a></li>
+        <li>名稱填「愛的力量更新」，Expiration 選 30 天</li>
+        <li>Repository access 選「Only select repositories」→ 勾 ccf-lovepower</li>
+        <li>Permissions 找「Actions」，設為「Read and write」</li>
+        <li>按「Generate token」，複製 github_pat_ 開頭的字串貼到下面</li>
+      </ol>
+      <label class="small muted" for="now-key-in">金鑰</label>
+      <input type="password" id="now-key-in" autocomplete="off" placeholder="github_pat_…">
+      <p class="msg small" id="now-key-msg" style="margin:0"></p>
+      <div class="actions">
+        <button type="button" class="ghost" id="now-key-clear">清除金鑰</button>
+        <button type="button" class="ghost" id="now-key-back">返回</button>
+        <button type="button" class="primary" id="now-key-save">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet" aria-hidden="true" aria-labelledby="s-org">
   <header>
@@ -541,12 +636,13 @@ $("m-gain").addEventListener("click",()=>setMode("gain")); $("m-total").addEvent
 /* ---------- boot: auto-track on load ---------- */
 render(); setInterval(()=>{renderHero();renderLive();},60000);
 try{ const w=JSON.parse(localStorage.getItem("ccf-follow")||"[]"); if(Array.isArray(w)) watch=w.map(String); }catch(_){}
-let lastLoad=0;
+let lastLoad=0, dataUpdatedAt=0;
 async function load(){
   try{
     const r=await fetch("data.json?t="+Date.now(),{cache:"no-store"});
     if(!r.ok) throw new Error(r.status);
     const D=await r.json();
+    dataUpdatedAt=Date.parse(D.updatedAt||"")||0;
     catalog=D.catalog||{}; days=(D.days||[]).filter(x=>x&&x.date&&x.votes).sort((a,b)=>a.date.localeCompare(b.date));
     watch=watch.filter(id=>catalog[id]); lastLoad=Date.now();
     const sa=$("snap-at"); if(sa&&D.updatedAt) sa.textContent=fTime.format(new Date(D.updatedAt));
@@ -556,7 +652,122 @@ async function load(){
 load();
 setInterval(load,10*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&Date.now()-lastLoad>5*60*1000) load(); });
+/* ---------- 即時現況：請 GitHub 立刻跑一次抓票流程 ---------- */
 (function(){
+  const OWNER="focusonccf2-stack", REPO="ccf-lovepower", WF="fetch-votes.yml";
+  const API="https://api.github.com/repos/"+OWNER+"/"+REPO;
+  const WF_URL="https://github.com/"+OWNER+"/"+REPO+"/actions/workflows/"+WF;
+  const KEY="ccf-gh-token";
+  const getTok=()=>{ try{ return localStorage.getItem(KEY)||""; }catch(_){ return ""; } };
+  let eta=150000, t0=0, timer=null, poll=null, stage="", runUrl="";
+  const show=id=>["now-start","now-manual","now-track","now-key"].forEach(x=>$(x).hidden=x!==id);
+  const mmss=ms=>{ const s=Math.max(0,Math.round(ms/1000)); return s>=60? Math.floor(s/60)+" 分 "+(s%60)+" 秒" : s+" 秒"; };
+  const ago=ts=>{ const m=Math.round((Date.now()-ts)/60000); return m<1?"剛剛":m<60?m+" 分鐘前":Math.floor(m/60)+" 小時 "+(m%60)+" 分鐘前"; };
+  async function gh(path,opt={}){
+    const h={"Accept":"application/vnd.github+json"}; const t=getTok(); if(t) h.Authorization="Bearer "+t;
+    return fetch(API+path,Object.assign({},opt,{headers:Object.assign(h,opt.headers||{})}));
+  }
+  function nextAuto(){ // 排程：UTC 每 3 小時的第 7 分
+    const d=new Date(); d.setUTCMinutes(7,0,0);
+    while(d<=new Date()||d.getUTCHours()%3!==0) d.setUTCHours(d.getUTCHours()+1);
+    return d;
+  }
+  async function estimate(){
+    try{
+      const r=await gh("/actions/workflows/"+WF+"/runs?status=success&per_page=6");
+      const j=await r.json(); const ds=(j.workflow_runs||[]).filter(x=>x.event!=="push").map(x=>Date.parse(x.updated_at)-Date.parse(x.run_started_at||x.created_at)).filter(x=>x>0&&x<15*60000);
+      if(ds.length){ eta=ds.reduce((a,b)=>a+b,0)/ds.length+25000; $("now-eta-note").textContent="依最近 "+ds.length+" 次執行的平均時間估算，GitHub 忙碌時可能會再久一點。"; }
+      else $("now-eta-note").textContent="GitHub 忙碌時可能會再久一點。";
+    }catch(_){ $("now-eta-note").textContent="GitHub 忙碌時可能會再久一點。"; }
+    $("now-eta").textContent="約 "+mmss(eta);
+  }
+  function open(){
+    show("now-start"); $("now-scrim").classList.add("open");
+    $("now-last").textContent=(dataUpdatedAt?"目前資料是 "+ago(dataUpdatedAt)+"（"+fTime.format(new Date(dataUpdatedAt))+"）抓的。":"")+"下次自動更新：約 "+fTime.format(nextAuto())+"。";
+    $("now-key-state").textContent=getTok()?"（這台電腦已設定 ✓）":"（目前未設定）";
+    estimate(); $("now-go").focus();
+  }
+  function close(){ $("now-scrim").classList.remove("open"); }
+  function setStage(s,fail){
+    stage=s; const order=["queue","fetch","deploy","show"]; const k=order.indexOf(s);
+    document.querySelectorAll("#now-steps li").forEach((li,i)=>{ li.className= fail&&i===k?"fail": i<k?"done": i===k?(s==="done"?"done":"doing"):""; li.querySelector("i").textContent= li.className==="done"?"✓":li.className==="fail"?"!":""; });
+    if(s==="done") document.querySelectorAll("#now-steps li").forEach(li=>{li.className="done";li.querySelector("i").textContent="✓";});
+  }
+  function tick(){
+    const el=Date.now()-t0, left=eta-el;
+    $("now-bar").style.width=Math.min(98,el/eta*100)+"%";
+    if(left>0){ $("now-remain-l").textContent="約剩"; $("now-remain").textContent=mmss(left); }
+    else { $("now-remain-l").textContent="比平常久一點，"; $("now-remain").textContent="請再稍候"; }
+  }
+  function finish(ok,msg){
+    clearInterval(timer); clearInterval(poll); timer=poll=null;
+    $("now-bar").style.width=ok?"100%":$("now-bar").style.width;
+    $("now-remain-l").textContent=ok?"完成，花了":"未完成"; $("now-remain").textContent=ok?mmss(Date.now()-t0):"";
+    const r=$("now-result"); r.hidden=false; r.style.background=ok?"var(--in-soft)":"var(--soft)"; r.innerHTML=msg;
+  }
+  function usLine(){
+    const L=days.length-1, us=usId(); if(L<0||!us) return "已更新到最新票數。";
+    const {m,l}=rank60(L), v=val(L,us), cutV=l.length>=CUT?l[CUT-1][1]:null;
+    return "已更新！本會目前 <b>第 "+m[us]+" 名，"+fmt(v)+" 票</b>"+(cutV!=null?"；第 12 名 "+fmt(cutV)+" 票。":"。");
+  }
+  async function check(){
+    // 1) 看網站資料是否已經更新
+    const before=dataUpdatedAt; await load();
+    if(dataUpdatedAt>before&&dataUpdatedAt>=t0-30000){ setStage("done"); finish(true,usLine()); toast("已更新最新票數"); return; }
+    // 2) 看 GitHub 執行到哪一步（公開 repo 不需金鑰也能讀）
+    try{
+      const r=await gh("/actions/workflows/"+WF+"/runs?per_page=5"); const j=await r.json();
+      const run=(j.workflow_runs||[]).find(x=>x.event!=="push"&&Date.parse(x.created_at)>=t0-90000);
+      if(!run){ setStage("queue"); return; }
+      runUrl=run.html_url; $("now-run").href=runUrl; $("now-run").hidden=false;
+      if(run.status==="completed"){
+        if(run.conclusion==="success"){ setStage("show"); }
+        else { setStage(stage||"fetch",true); finish(false,"這次抓取沒有成功（"+esc(run.conclusion||"")+"）。可以按「查看執行紀錄」看原因，或稍後再試。"); }
+        return;
+      }
+      if(run.status!=="in_progress"){ setStage("queue"); return; }
+      const jr=await gh("/actions/runs/"+run.id+"/jobs"); const jj=await jr.json();
+      const jobs=jj.jobs||[], f=jobs.find(x=>x.name==="fetch"), d=jobs.find(x=>x.name==="deploy");
+      if(d&&d.status!=="queued"&&d.status!=="waiting") setStage("deploy");
+      else if(f&&f.status==="completed") setStage("deploy");
+      else if(f&&f.status==="in_progress") setStage("fetch");
+      else setStage("queue");
+    }catch(_){}
+  }
+  function startTracking(){
+    t0=Date.now(); stage=""; $("now-result").hidden=true; $("now-run").hidden=true; $("now-bar").style.width="0";
+    show("now-track"); setStage("queue"); tick();
+    clearInterval(timer); clearInterval(poll);
+    timer=setInterval(tick,1000);
+    poll=setInterval(()=>{ if(Date.now()-t0>12*60000){ finish(false,"等了比較久還沒完成。可能 GitHub 正忙，資料完成後網頁會自動更新，也可以按「查看執行紀錄」。"); return; } check(); },10000);
+  }
+  async function go(){
+    const t=getTok();
+    if(!t){ $("now-gh").href=WF_URL; show("now-manual"); return; }
+    $("now-go").disabled=true;
+    try{
+      const r=await gh("/actions/workflows/"+WF+"/dispatches",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ref:"main"})});
+      if(r.status===204){ startTracking(); }
+      else if(r.status===401||r.status===403||r.status===404){ show("now-key"); $("now-key-msg").className="msg err small"; $("now-key-msg").textContent="金鑰無效或權限不足（需要 Actions：Read and write），請重新設定。"; }
+      else throw new Error(r.status);
+    }catch(e){ toast("送出失敗，請稍後再試"); }
+    finally{ $("now-go").disabled=false; }
+  }
+  $("now-btn").addEventListener("click",open);
+  $("now-go").addEventListener("click",go);
+  $("now-gh").addEventListener("click",()=>{ startTracking(); });
+  $("now-key-link").addEventListener("click",e=>{ e.preventDefault(); $("now-key-in").value=""; $("now-key-msg").textContent=""; show("now-key"); });
+  $("now-key-back").addEventListener("click",()=>show("now-start"));
+  $("now-key-save").addEventListener("click",()=>{
+    const v=$("now-key-in").value.trim();
+    if(!/^(github_pat_|ghp_)/.test(v)){ $("now-key-msg").className="msg err small"; $("now-key-msg").textContent="看起來不是 GitHub 金鑰，應該是 github_pat_ 開頭。"; return; }
+    try{ localStorage.setItem(KEY,v); }catch(_){}
+    $("now-key-msg").className="msg ok small"; $("now-key-msg").textContent="已儲存。"; setTimeout(open,600);
+  });
+  $("now-key-clear").addEventListener("click",()=>{ try{ localStorage.removeItem(KEY); }catch(_){} $("now-key-in").value=""; $("now-key-msg").className="msg small"; $("now-key-msg").textContent="已清除這台電腦的金鑰。"; });
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",close));
+  $("now-scrim").addEventListener("click",e=>{ if(e.target===$("now-scrim")) close(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("now-scrim").classList.contains("open")) close(); });
 })();
 })();
 </script>
